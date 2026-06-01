@@ -1,0 +1,12 @@
+{
+  "name": "cadence",
+  "version": "0.1.0",
+  "description": "Collaborative Agent Discovery & Execution Network with Controlled Endpoints",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

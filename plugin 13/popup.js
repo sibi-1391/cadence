@@ -5,6 +5,40 @@ const btnImport = document.getElementById("btnImport");
 const fileInput = document.getElementById("fileInput");
 const dagInfo = document.getElementById("dagInfo");
 const pageCtx = document.getElementById("pageCtx");
+const btnGear = document.getElementById("btnGear");
+const settingsPanel = document.getElementById("settingsPanel");
+const apiKeyInput = document.getElementById("apiKeyInput");
+const btnSaveKey = document.getElementById("btnSaveKey");
+const keyStatus = document.getElementById("keyStatus");
+
+// ------------------------------------------------------------------
+// Settings — API key
+// ------------------------------------------------------------------
+btnGear.addEventListener("click", () => settingsPanel.classList.toggle("open"));
+
+chrome.storage.local.get("cadence_api_key", (stored) => {
+  if (stored.cadence_api_key) {
+    keyStatus.textContent = "● set";
+    keyStatus.className = "key-status set";
+    apiKeyInput.placeholder = "sk-ant-... (saved)";
+  } else {
+    keyStatus.textContent = "● not set";
+    keyStatus.className = "key-status unset";
+  }
+});
+
+btnSaveKey.addEventListener("click", () => {
+  const key = apiKeyInput.value.trim();
+  if (!key) return;
+  chrome.storage.local.set({ cadence_api_key: key }, () => {
+    apiKeyInput.value = "";
+    apiKeyInput.placeholder = "sk-ant-... (saved)";
+    keyStatus.textContent = "● set";
+    keyStatus.className = "key-status set";
+    settingsPanel.classList.remove("open");
+    addMessage("agent", "API key saved.");
+  });
+});
 
 // ------------------------------------------------------------------
 // Init — check if a DAG is already loaded and update current page ctx
@@ -38,13 +72,16 @@ fileInput.addEventListener("change", (e) => {
   reader.onload = (ev) => {
     try {
       const dag = JSON.parse(ev.target.result);
-      chrome.runtime.sendMessage({ type: "LOAD_DAG", dag }, (res) => {
-        if (res && res.ok) {
-          setDagLoaded(res);
-          addMessage("agent", `DAG loaded: <strong>${dag.graph.application_name}</strong> — ${dag.nodes.length} nodes, ${dag.links.length} edges.`);
-        } else {
-          addMessage("agent", "Failed to load DAG — invalid format.", true);
-        }
+      // Write directly to storage to avoid message size limits, then notify background
+      chrome.storage.local.set({ cadence_dag: dag }, () => {
+        chrome.runtime.sendMessage({ type: "RELOAD_DAG" }, (res) => {
+          if (res && res.ok) {
+            setDagLoaded(res);
+            addMessage("agent", `DAG loaded: <strong>${dag.graph.application_name}</strong> — ${dag.nodes.length} nodes, ${dag.links.length} edges.`);
+          } else {
+            addMessage("agent", "Failed to load DAG — invalid format.", true);
+          }
+        });
       });
     } catch {
       addMessage("agent", "Could not parse JSON file.", true);
@@ -91,6 +128,11 @@ async function submitQuery() {
 
     if (res.cached) {
       addMessage("agent", `(cached) ${res.answer}`);
+      return;
+    }
+
+    if (res.answer) {
+      addMessage("agent", res.answer);
       return;
     }
 

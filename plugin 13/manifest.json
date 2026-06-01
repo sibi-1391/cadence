@@ -3,7 +3,7 @@
   "name": "CADENCE",
   "version": "0.1.0",
   "description": "Collaborative Agent Discovery & Execution Network with Controlled Endpoints",
-  "permissions": ["storage", "activeTab", "scripting", "tabs"],
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "scripting", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
